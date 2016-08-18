@@ -1,5 +1,6 @@
 // getRandomColor is from http://stackoverflow.com/questions/1484506/random-color-generator-in-javascript
 function getRandomColor() {
+    // Returns a random hexadecimal color
     var letters = '0123456789ABCDEF';
     var color = '#';
     for (var i = 0; i < 6; i++ ) {
@@ -9,6 +10,10 @@ function getRandomColor() {
 }
 
 function renderGraph(objectId, containerId) {
+    // Renders a histogram corresponding to the URLDataPoints for MonitoredURL
+    // referenced by *objectId*, rendered into the element referenced by
+    // *containerId*
+    
     // First load the data
     $.ajax({
         url : '/api/get_url_data_points?url_object_id=' + objectId,
