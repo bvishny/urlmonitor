@@ -16,6 +16,7 @@ from google.appengine.ext import ndb
 from google.appengine.api import (
     urlfetch,
     urlfetch_errors,
+    taskqueue,
 )
 
 
@@ -93,7 +94,6 @@ def get_queue_workers_needed(offset=0):
     ))
     
 
-
 def ping_urls(url_object_ids, monitoring_timestamp):
     """Synchronously and in order, ping the MonitoredURLs referenced by *url_object_ids*. Finally record a URLDataPoint for each
     recording URLDataPoint.monitoring_timestamp = *monitoring_timestamp*
@@ -125,8 +125,12 @@ def ping_urls(url_object_ids, monitoring_timestamp):
             data_point.put()
 
 
-def run_cron_monitoring_job():
+def run_cron_monitoring_job(is_synchronous=False):
     """Kicks off workers to ping all MonitoredURLs in the system. 
+
+    is_synchronous is a Boolean which indicates whether to collect
+    URL data WITHOUT background workers, running URL batches in
+    serialized fashion instead.
 
     """
     # The timestamp used on the URLDataPoint(s)
@@ -147,10 +151,14 @@ def run_cron_monitoring_job():
         )
         total_pages = get_url_response['total_pages']
         url_object_ids = [url['object_id'] for url in get_url_response['urls']]
-        ping_urls(
+        ping_url_params = dict(
             url_object_ids=url_object_ids,
             monitoring_timestamp=monitoring_timestamp,
         )
+        if is_synchronous:
+            ping_urls(**ping_url_params)
+        else:
+            taskqueue.add(url='/api/ping_urls', params=ping_url_params, target='worker')
         page_number += 1
         total_urls += len(url_object_ids)
 
@@ -185,9 +193,8 @@ def merge_data_points(
     url_object_id,
     max_data_points,
 ):
-    """Merge together URLDataPoints for the
-    MonitoredURL referenced by *url_object_id*, so that the
-    total number of URLDataPoints doesn't exceed *max_data_points*.
+    """Merge together URLDataPoints for the MonitoredURL referenced by *url_object_id*,
+    so that the total number of URLDataPoints doesn't exceed *max_data_points*.
     This is done by adding the status codes in the JSON frequency maps. The
     timestamp used for the merged URLDataPoint is the one from the earliest
     URLDataPoint that was combined.
