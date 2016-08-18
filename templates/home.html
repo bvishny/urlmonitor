@@ -38,6 +38,17 @@
       <h3>Existing URLs:</h3>
       <div class="list-group" id="url-list">
         <div id="url-list-inner">
+          {% for url in get_urls_result['urls'] %}
+            <a href="/histogram?object_id={{url.object_id}}" class="list-group-item">{{url.url}}</a>
+          {% endfor %}
+          <div class="form-group">
+            {% if get_urls_result['page_number'] > 1 %}
+              <a class="btn btn-info" href="?page_number={{get_urls_result['page_number']-1}}&page_size={{get_urls_result['page_size']}}">Previous Page</a>
+            {% endif %}
+            {% if get_urls_result['page_number'] < get_urls_result['total_pages'] %}
+              <a class="btn btn-info" href="?page_number={{get_urls_result['page_number']+1}}&page_size={{get_urls_result['page_size']}}">Next Page</a>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
@@ -45,6 +56,6 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="/assets/js/bootstrap.min.js"></script>
     <script src="/assets/js/pagination.min.js"></script>
-    <script src="/assets/js/home.js"></script>
+    <script src="/assets/js/home.js?1"></script>
   </body>
 </html>

@@ -25,23 +25,3 @@ $("#add_url").submit(function(e)
     });
     e.preventDefault();
 });
-
-$('#url-list').pagination({
-    dataSource: '/api/get_urls?monitoring_interval=1',
-    locator: 'urls',
-    callback: function(data, pagination) {
-        var html = "";
-        for (var idx in data) {
-            var url_object = data[idx];
-            html += '<a href="/histogram?object_id=' + url_object.object_id + '" class="list-group-item">' + url_object.url + '</a>';
-        }
-        $('#url-list-inner').html(html);
-    },
-    alias: {
-        pageNumber: 'page_number',
-        pageSize: 'page_size'
-    },
-    // XXX: Bad
-    pageSize: 200,
-})
-

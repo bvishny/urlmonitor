@@ -5,6 +5,7 @@ import webapp2
 import errors
 import api_actions
 import ndb_models
+import constants
 
 from web_framework import (
     BaseHandler,
@@ -17,7 +18,14 @@ class MainHandler(BaseHandler):
 
     """
     def get(self):
-        return self.render_template('home.html')
+        return self.render_template(
+            'home.html',
+            get_urls_result=api_actions.get_urls(
+                page_size=int(self.request.get('page_size', 10)),
+                page_number=int(self.request.get('page_number', 1)),
+                monitoring_interval=constants.STANDARD_MONITORING_INTERVAL,
+            ),
+        )
 
 
 class HistogramHandler(BaseHandler):
