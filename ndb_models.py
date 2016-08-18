@@ -2,13 +2,26 @@
 used by the application
 
 """
+import json
 import uuid
 import time
+
+import constants
 
 from urlparse import urlparse
 from google.appengine.ext import ndb
 
 from exceptions import ValidationError
+
+
+class ModelJSONEncoder(json.JSONEncoder):
+    """Provides custom JSON encoding of NDB models
+
+    """
+    def default(self, obj):
+        if hasattr(obj, 'to_serializable_dict'):
+            return obj.to_serializable_dict()
+        return super(ModelJSONEncoder, self).default(obj)
 
 
 class BaseModel(ndb.Model):
@@ -31,12 +44,13 @@ class BaseModel(ndb.Model):
     def get_by_object_id(cls, object_id):
         return cls.query().filter(cls.object_id==object_id).get()
 
+    def to_serializable_dict(self):
+        """Converts the model data to a serializable dict
 
-    def to_json(self):
-        """Converts the model data to json_data
+        Define self.HIDDEN_PROPERTIES as any properties to exclude!
 
         """
-        pass
+        return self.to_dict(exclude=getattr(self, 'HIDDEN_PROPERTIES', []),)
 
 
 class MonitoredURL(BaseModel):
@@ -71,6 +85,10 @@ class MonitoredURL(BaseModel):
             # XXX: interpolate URL and make unicode safe
             raise ValidationError('That URL is already monitored!')
 
+        # Ensure that the interval is an allowed interval
+        if self.interval not in constants.ALLOWED_MONITORING_INTERVALS:
+            raise ValidationError('That monitoring interval is not allowed!')
+
         super(MonitoredURL, self)._pre_put_hook()
 
 
@@ -87,3 +105,5 @@ class URLDataPoint(BaseModel):
     monitoring_timestamp = ndb.StringProperty()
     # Provides data about the status of the URL
     json_data = ndb.TextProperty()
+
+    # XXX: Validating monitoring_timestamp and json_data
