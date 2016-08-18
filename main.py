@@ -43,11 +43,15 @@ class APIHandler(BaseHandler):
         except Exception, e:
             if isinstance(e, exceptions.NoCapacityError):
                 self.response.set_status(409)
+                error_message = unicode(e)
             elif isinstance(e, exceptions.ValidationError):
                 self.response.set_status(400)
+                error_message = unicode(e)
             else:
                 self.response.set_status(500)
-            self.response.write(json.dumps({'error': unicode(e)}))
+                # Do not expose raw error message - potentially confidential
+                error_message = unicode('Unable to process request - please contact us')
+            self.response.write(json.dumps({'error': error_message}))
         else:
             self.response.write(json.dumps(output, cls=ndb_models.ModelJSONEncoder))
 

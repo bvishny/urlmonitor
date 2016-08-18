@@ -12,8 +12,10 @@ import exceptions
 from decimal import Decimal
 
 from google.appengine.ext import ndb
-from google.appengine.api import urlfetch
-from google.appengine.api import urlfetch_errors
+from google.appengine.api import (
+    urlfetch,
+    urlfetch_errors,
+)
 
 
 def list_urls(
@@ -28,25 +30,38 @@ def list_urls(
     *page_number* is 1-indexed, NOT 0-indexed
 
     """
-    return ndb_models.MonitoredURL.query().filter(
+    base_query = ndb_models.MonitoredURL.query().filter(
         interval=monitoring_interval,
-    ).fetch(
-        limit=page_size,
-        offset=(page_number-1)*page_size,
     )
+    total_count = base_query.count()
+    total_pages = math.ceil(Decimal(total_count) / Decimal(page_size))
+
+    if page_number > total_pages or page_number < 1:
+        raise exceptions.ValidationError('Invalid page number!')
+
+    return {
+        'total_count': total_count,
+        'total_pages': total_pages,
+        'page_number': page_number,
+        'page_size': page_size,
+        'urls': base_query.fetch(
+            limit=page_size,
+            offset=(page_number-1)*page_size,
+        ),
+    }
 
 
 def add_url(
     url,
-    monitoring_interval,
-    timeout,
+    monitoring_interval=constants.STANDARD_MONITORING_INTERVAL,
+    timeout=constants.STANDARD_TIMEOUT,
 ):
     """Add a URL, *url*, to be monitored every *monitoring_interval* minutes, timing out if the request is not completed in *timeout*
     seconds
 
     """
     # Ensure there is capacity to add this URL
-    if get_queue_workers_needed() > constants.MAX_QUEUE_WORKERS:
+    if get_queue_workers_needed(offset=timeout) > constants.MAX_QUEUE_WORKERS:
         raise exceptions.NoCapacityError('The system is at capacity and cannot add this URL!')
 
     new_url = ndb_models.MonitoredURL()
@@ -56,16 +71,20 @@ def add_url(
     new_url.put()
 
 
-def get_queue_workers_needed():
+def get_queue_workers_needed(offset=0):
     """Returns the number of queue workers needed to accomodate
-    all URLs in the system at max demand
+    all URLs in the system at max demand plus an additional *offset*
+    seconds latency
 
     """
     # Oddly, Google Query Language doesn't support sum...
     return math.ceil(
-        sum([
-            Decimal(url.timeout) for url in ndb_models.MonitoredURL.query().fetch()
-        ]) /
+        (
+            sum([
+                Decimal(url.timeout) for url in ndb_models.MonitoredURL.query().fetch()
+            ]) + 
+            Decimal(offset)
+        ) /
         Decimal('60.0')
     )
     
@@ -104,8 +123,8 @@ def ping_urls(url_object_ids, monitoring_timestamp):
 
 def get_url_data_points(
     url_object_id,
-    start_timestamp,
-    end_timestamp,
+    start_timestamp=None,
+    end_timestamp=None,
 ):
     """Retrieve all URLDataPoint(s) for the MonitoredURL referenced by
     *url_object_id* between *start_timestamp* (inclusive) and *end_timestamp* (non-inclusive)
