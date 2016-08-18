@@ -199,7 +199,7 @@ def get_url_data_points(
         conditions.append(models.created<end_timestamp)
 
     constructed_query = ndb.AND(*tuple(conditions))
-    return model.query(constructed_query).fetch()
+    return model.query(constructed_query).order(model.created).fetch()
 
 
 def merge_data_points(

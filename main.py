@@ -6,38 +6,39 @@ import errors
 import api_actions
 import ndb_models
 
-from webapp2_extras import (
-    jinja2,
-)
-
 from web_framework import (
     BaseHandler,
     APIHandler,
 )
 
-ALLOWED_API_METHODS = [
-    api_actions.get_urls,
-    api_actions.add_url,
-    api_actions.get_queue_workers_needed,
-    api_actions.ping_urls,
-    api_actions.run_cron_monitoring_job,
-    api_actions.get_url_data_points,
-    api_actions.merge_data_points,
-]
-
 class MainHandler(BaseHandler):
+    """The Homepage of the service, allows the addition
+    of new MonitoredURL(s) and listing of existing MonitoredURL(s)
+
+    """
     def get(self):
+        return self.render_template('home.html')
+
+
+class HistogramHandler(BaseHandler):
+    """Displays a graph of the frequency of different HTTP status
+    codes over time
+
+    """
+    def get(self):
+        url = ndb_models.MonitoredURL.get_by_object_id(self.request.get('object_id'))
         return self.render_template(
-            'home.html',
-            **{}
+            'url_histogram.html',
+            url=url
         )
 
 
 handlers = [
     ('/', MainHandler),
+    ('/histogram', HistogramHandler),
 ]
 
-for method in ALLOWED_API_METHODS:
+for method in api_actions.ALLOWED_API_METHODS:
     url_path = '/api/%s' % method.__name__
     handlers.append((url_path, APIHandler))
 

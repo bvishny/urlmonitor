@@ -29,7 +29,7 @@ class BaseModel(ndb.Model):
     generation for all models.
 
     """
-    created = ndb.IntegerProperty()
+    created = ndb.IntegerProperty(indexed=True)
     updated = ndb.IntegerProperty()
     object_id = ndb.StringProperty()
 
@@ -72,6 +72,9 @@ class MonitoredURL(BaseModel):
         """
         try:
             parsed_url = urlparse(self.url)
+            # URLs without a scheme (http://) won't trigger error
+            if not parsed_url.scheme:
+                raise ValidationError('Invalid URL')
         except:
             # XXX: interpolate URL and make unicode safe
             raise ValidationError('Invalid URL format!')
@@ -103,7 +106,7 @@ class URLDataPoint(BaseModel):
 
     """
     # Foreign Key to MonitoredURL.object_id
-    url_object_id = ndb.StringProperty()
+    url_object_id = ndb.StringProperty(indexed=True)
     # Identifies the time for which this data point was captured,
     # as identified by the central monitoring process
     monitoring_timestamp = ndb.IntegerProperty()

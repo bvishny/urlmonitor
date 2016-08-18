@@ -76,10 +76,12 @@ class APIHandler(BaseHandler):
             else:
                 request_data = dict(self.request.GET)
 
-            # Convert typed params
             for k, v in request_data.iteritems():
                 if k in self.PARAMS_TO_CONVERT:
                     request_data[k] = self.PARAMS_TO_CONVERT[k](v)
+
+            # XXX: Hack, Remove '_' param
+            request_data.pop('_', None)
 
             output = self.api_method(**request_data)
         except Exception, e:
@@ -91,7 +93,6 @@ class APIHandler(BaseHandler):
                 error_message = unicode(e)
             else:
                 # XXX: REMOVE
-                import pdb; pdb.set_trace()
                 raise e
                 self.response.set_status(500)
                 # Do not expose raw error message - potentially confidential
