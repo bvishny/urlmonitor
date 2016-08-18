@@ -69,7 +69,7 @@ class APIHandler(BaseHandler):
         try:
             # Ensure that the proper HTTP method is used
             if int(self.is_get_allowed) + int(method=='GET') == 1:
-                raise ValidationError('Invalid HTTP method!')
+                raise errors.ValidationError('Invalid HTTP method!')
             # Convert parameters as needed
             if method == 'POST':
                 request_data = json.loads(self.request.body.decode('utf-8'))
