@@ -1,0 +1,4 @@
+queue:
+- name: ping
+  mode: push
+  rate: 1/s

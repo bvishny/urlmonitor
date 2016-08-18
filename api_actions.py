@@ -158,7 +158,7 @@ def run_cron_monitoring_job(is_synchronous=False):
         if is_synchronous:
             ping_urls(**ping_url_params)
         else:
-            taskqueue.add(url='/api/ping_urls', params=ping_url_params, target='worker')
+            taskqueue.add(url='/api/ping_urls', payload=ping_url_params)
         page_number += 1
         total_urls += len(url_object_ids)
 

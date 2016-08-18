@@ -46,8 +46,8 @@ class APIHandler(BaseHandler):
     def _handle(self, method):
         try:
             # Ensure that the proper HTTP method is used
-            if int(self.is_get_allowed) + int(method=='GET') == 1:
-                raise ValidationError('Invalid HTTP method!')
+            #if int(self.is_get_allowed) + int(method=='GET') == 1:
+            #    raise ValidationError('Invalid HTTP method!')
             output = self.api_function(**getattr(self.request, method, {}))
         except Exception, e:
             if isinstance(e, exceptions.NoCapacityError):
