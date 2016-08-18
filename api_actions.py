@@ -8,7 +8,7 @@ import time
 
 import ndb_models
 import constants
-import exceptions
+import errors
 
 from decimal import Decimal
 
@@ -33,7 +33,7 @@ def get_urls(
 
     """
     base_query = ndb_models.MonitoredURL.query().filter(
-        interval=monitoring_interval,
+        ndb_models.MonitoredURL.interval==monitoring_interval,
     )
     total_count = base_query.count()
     total_pages = int(math.ceil(Decimal(total_count) / Decimal(page_size)))
@@ -42,7 +42,7 @@ def get_urls(
         page_number > total_pages and
         not (page_number == 1 and total_pages == 0)
     ) or page_number < 1:
-        raise exceptions.ValidationError('Invalid page number!')
+        raise errors.ValidationError('Invalid page number!')
 
     return {
         'total_count': total_count,
@@ -67,7 +67,7 @@ def add_url(
     """
     # Ensure there is capacity to add this URL
     if get_queue_workers_needed(offset=timeout) > constants.MAX_QUEUE_WORKERS:
-        raise exceptions.NoCapacityError('The system is at capacity and cannot add this URL!')
+        raise errors.NoCapacityError('The system is at capacity and cannot add this URL!')
 
     new_url = ndb_models.MonitoredURL()
     new_url.url = url
@@ -75,6 +75,7 @@ def add_url(
     new_url.timeout = timeout
     new_url.put()
 
+    return new_url
 
 def get_queue_workers_needed(offset=0):
     """Returns the number of queue workers needed to accomodate
@@ -104,6 +105,8 @@ def ping_urls(url_object_ids, monitoring_timestamp):
         for object_id in url_object_ids
     ]))
     url_objects = ndb_models.MonitoredURL.query(constructed_query)
+    data_points = []
+
     for url_object in url_objects:
         try:
             result = urlfetch.fetch(
@@ -123,6 +126,10 @@ def ping_urls(url_object_ids, monitoring_timestamp):
             data_point.monitoring_timestamp = monitoring_timestamp
             data_point.json_data = json.dumps({status_code: 1})
             data_point.put()
+
+            data_points.append(data_point)
+
+    return data_points
 
 
 def run_cron_monitoring_job(is_synchronous=False):
@@ -150,7 +157,7 @@ def run_cron_monitoring_job(is_synchronous=False):
             monitoring_interval=constants.STANDARD_MONITORING_INTERVAL,
         )
         total_pages = get_url_response['total_pages']
-        url_object_ids = [url['object_id'] for url in get_url_response['urls']]
+        url_object_ids = [url.object_id for url in get_url_response['urls']]
         ping_url_params = dict(
             url_object_ids=url_object_ids,
             monitoring_timestamp=monitoring_timestamp,
@@ -158,7 +165,13 @@ def run_cron_monitoring_job(is_synchronous=False):
         if is_synchronous:
             ping_urls(**ping_url_params)
         else:
-            taskqueue.add(url='/api/ping_urls', payload=ping_url_params)
+            queue = taskqueue.Queue(name='ping')
+            task = taskqueue.Task(
+                url='/api/ping_urls',
+                # Data must be in POSTABLE format
+                payload=json.dumps(ping_url_params),
+            )
+            queue.add_async(task)
         page_number += 1
         total_urls += len(url_object_ids)
 
@@ -186,7 +199,7 @@ def get_url_data_points(
         conditions.append(models.created<end_timestamp)
 
     constructed_query = ndb.AND(*tuple(conditions))
-    return model.query(constructed_query)
+    return model.query(constructed_query).fetch()
 
 
 def merge_data_points(
@@ -204,4 +217,16 @@ def merge_data_points(
     total URLDataPoints.
 
     """
-    pass
+    raise NotImplementedError('This functionality is not yet done!')
+
+
+# Specifies which of these are callable from the public web
+ALLOWED_API_METHODS = [
+    get_urls,
+    add_url,
+    get_queue_workers_needed,
+    ping_urls,
+    run_cron_monitoring_job,
+    get_url_data_points,
+    merge_data_points,
+]

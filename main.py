@@ -2,68 +2,28 @@
 import json
 import webapp2
 
-import exceptions
+import errors
 import api_actions
+import ndb_models
 
 from webapp2_extras import (
     jinja2,
 )
 
-class BaseHandler(webapp2.RequestHandler):
-    """Provides easy access to a basic templating system
-    for all web handlers.
+from web_framework import (
+    BaseHandler,
+    APIHandler,
+)
 
-    """
-    @webapp2.cached_property
-    def jinja2(self):
-        return jinja2.get_jinja2(app=self.app)
-
-    def render_template(self, filename, **template_args):
-        self.response.write(self.jinja2.render_template(filename, **template_args))
-
-
-class APIHandler(BaseHandler):
-    """Encapsulates calling of the functions in api_actions.py
-    and serialization of the result
-
-    """
-    def __init__(self, path, api_function):
-        self.url_path = path
-        self.api_function = api_function
-        # XXX: Indicates whether GET can be used - not scalable!
-        # Google Cloud Engine Cron requests are GET and must be allowed :(
-        self.is_get_allowed = (
-            api_function.__name__.startswith('get_') or
-            api_function.__name__.startswith('run_cron_')
-        )
-
-    def get(self):
-        return self._handle(method='GET')
-
-    def post(self):
-        return self._handle(method='POST')
-
-    def _handle(self, method):
-        try:
-            # Ensure that the proper HTTP method is used
-            #if int(self.is_get_allowed) + int(method=='GET') == 1:
-            #    raise ValidationError('Invalid HTTP method!')
-            output = self.api_function(**getattr(self.request, method, {}))
-        except Exception, e:
-            if isinstance(e, exceptions.NoCapacityError):
-                self.response.set_status(409)
-                error_message = unicode(e)
-            elif isinstance(e, exceptions.ValidationError):
-                self.response.set_status(400)
-                error_message = unicode(e)
-            else:
-                self.response.set_status(500)
-                # Do not expose raw error message - potentially confidential
-                error_message = unicode('Unable to process request - please contact us')
-            self.response.write(json.dumps({'error': error_message}))
-        else:
-            self.response.write(json.dumps(output, cls=ndb_models.ModelJSONEncoder))
-
+ALLOWED_API_METHODS = [
+    api_actions.get_urls,
+    api_actions.add_url,
+    api_actions.get_queue_workers_needed,
+    api_actions.ping_urls,
+    api_actions.run_cron_monitoring_job,
+    api_actions.get_url_data_points,
+    api_actions.merge_data_points,
+]
 
 class MainHandler(webapp2.RequestHandler):
     def get(self):
@@ -74,17 +34,8 @@ handlers = [
     ('/', MainHandler),
 ]
 
-api_methods = [
-    api_actions.get_urls,
-    api_actions.add_url,
-    api_actions.get_queue_workers_needed,
-    api_actions.ping_urls,
-    api_actions.run_cron_monitoring_job,
-    api_actions.get_url_data_points,
-    api_actions.merge_data_points,
-]
-for method in api_methods:
-    handler = APIHandler(path='/api/%s' % method.__name__, api_function=method)
-    handlers.append((handler.url_path, handler))
+for method in ALLOWED_API_METHODS:
+    url_path = '/api/%s' % method.__name__
+    handlers.append((url_path, APIHandler))
 
 app = webapp2.WSGIApplication(handlers, debug=True)

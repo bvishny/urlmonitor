@@ -11,7 +11,7 @@ import constants
 from urlparse import urlparse
 from google.appengine.ext import ndb
 
-from exceptions import ValidationError
+from errors import ValidationError
 
 
 class ModelJSONEncoder(json.JSONEncoder):
@@ -79,7 +79,7 @@ class MonitoredURL(BaseModel):
             self.url = parsed_url.geturl()
 
         existing_url = MonitoredURL.query().filter(
-            url=self.url,
+            MonitoredURL.url==self.url,
         ).get()
         if existing_url:
             # XXX: interpolate URL and make unicode safe
@@ -106,7 +106,7 @@ class URLDataPoint(BaseModel):
     url_object_id = ndb.StringProperty()
     # Identifies the time for which this data point was captured,
     # as identified by the central monitoring process
-    monitoring_timestamp = ndb.StringProperty()
+    monitoring_timestamp = ndb.IntegerProperty()
     # Provides data about the status of the URL
     json_data = ndb.TextProperty()
 
