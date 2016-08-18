@@ -19,6 +19,13 @@ GET run_cron_monitoring_job
 GET get_url_data_points
 POST merge_data_points
 
+Frontend
+=================
+Home Page: Minor JS for AJAX submission of new URL in home.js
+Histogram: histogram.js uses API to retrieve data points for a monitored URL, create Rickshaw time series.
+
+Histogram is adapted from this Rickshaw example: http://code.shutterstock.com/rickshaw/examples/lines.html
+
 Technologies Used
 ==================
 Backend: Python on Google App Engine
