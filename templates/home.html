@@ -41,7 +41,7 @@
           {% for url in get_urls_result['urls'] %}
             <a href="/histogram?object_id={{url.object_id}}" class="list-group-item">{{url.url}}</a>
           {% endfor %}
-          <div class="form-group">
+          <div class="form-group" style="margin-top:10px">
             {% if get_urls_result['page_number'] > 1 %}
               <a class="btn btn-info" href="?page_number={{get_urls_result['page_number']-1}}&page_size={{get_urls_result['page_size']}}">Previous Page</a>
             {% endif %}
