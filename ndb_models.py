@@ -89,6 +89,10 @@ class MonitoredURL(BaseModel):
         if self.interval not in constants.ALLOWED_MONITORING_INTERVALS:
             raise ValidationError('That monitoring interval is not allowed!')
 
+        # XXX: Ensure (for now) that timeout doesn't exceed standard timeout
+        if self.timeout > constants.STANDARD_TIMEOUT:
+            raise ValidationError('That timeout is too long!')
+
         super(MonitoredURL, self)._pre_put_hook()
 
 
@@ -100,7 +104,7 @@ class URLDataPoint(BaseModel):
     """
     # Foreign Key to MonitoredURL.object_id
     url_object_id = ndb.StringProperty()
-    # Identifies the minute for which this data point was captured,
+    # Identifies the time for which this data point was captured,
     # as identified by the central monitoring process
     monitoring_timestamp = ndb.StringProperty()
     # Provides data about the status of the URL

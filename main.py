@@ -30,6 +30,12 @@ class APIHandler(BaseHandler):
     def __init__(self, path, api_function):
         self.url_path = path
         self.api_function = api_function
+        # XXX: Indicates whether GET can be used - not scalable!
+        # Google Cloud Engine Cron requests are GET and must be allowed :(
+        self.is_get_allowed = (
+            api_function.__name__.startswith('get_') or
+            api_function.__name__.startswith('run_cron_')
+        )
 
     def get(self):
         return self._handle(method='GET')
@@ -39,6 +45,9 @@ class APIHandler(BaseHandler):
 
     def _handle(self, method):
         try:
+            # Ensure that the proper HTTP method is used
+            if int(self.is_get_allowed) + int(method=='GET') == 1:
+                raise ValidationError('Invalid HTTP method!')
             output = self.api_function(**getattr(self.request, method, {}))
         except Exception, e:
             if isinstance(e, exceptions.NoCapacityError):
@@ -66,10 +75,11 @@ handlers = [
 ]
 
 api_methods = [
-    api_actions.list_urls,
+    api_actions.get_urls,
     api_actions.add_url,
     api_actions.get_queue_workers_needed,
     api_actions.ping_urls,
+    api_actions.run_cron_monitoring_job,
     api_actions.get_url_data_points,
     api_actions.merge_data_points,
 ]

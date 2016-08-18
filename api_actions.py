@@ -4,6 +4,7 @@ API
 """
 import math
 import json
+import time
 
 import ndb_models
 import constants
@@ -18,7 +19,7 @@ from google.appengine.api import (
 )
 
 
-def list_urls(
+def get_urls(
     page_size,
     page_number,
     monitoring_interval,
@@ -34,9 +35,12 @@ def list_urls(
         interval=monitoring_interval,
     )
     total_count = base_query.count()
-    total_pages = math.ceil(Decimal(total_count) / Decimal(page_size))
+    total_pages = int(math.ceil(Decimal(total_count) / Decimal(page_size)))
 
-    if page_number > total_pages or page_number < 1:
+    if (
+        page_number > total_pages and
+        not (page_number == 1 and total_pages == 0)
+    ) or page_number < 1:
         raise exceptions.ValidationError('Invalid page number!')
 
     return {
@@ -78,7 +82,7 @@ def get_queue_workers_needed(offset=0):
 
     """
     # Oddly, Google Query Language doesn't support sum...
-    return math.ceil(
+    return int(math.ceil(
         (
             sum([
                 Decimal(url.timeout) for url in ndb_models.MonitoredURL.query().fetch()
@@ -86,7 +90,7 @@ def get_queue_workers_needed(offset=0):
             Decimal(offset)
         ) /
         Decimal('60.0')
-    )
+    ))
     
 
 
@@ -119,6 +123,42 @@ def ping_urls(url_object_ids, monitoring_timestamp):
             data_point.monitoring_timestamp = monitoring_timestamp
             data_point.json_data = json.dumps({status_code: 1})
             data_point.put()
+
+
+def run_cron_monitoring_job():
+    """Kicks off workers to ping all MonitoredURLs in the system. 
+
+    """
+    # The timestamp used on the URLDataPoint(s)
+    monitoring_timestamp = int(time.time())
+
+    # Each worker should process the number of URLs that can safely be processed in a minute.
+    page_size = int(math.floor(Decimal(60) / Decimal(constants.STANDARD_TIMEOUT)))
+    page_number = 1
+    total_pages = None
+    total_urls = 0
+
+    while not total_pages or page_number <= total_pages:
+        # Right now all the URLs have a monitoring interval of 1 minute
+        get_url_response = get_urls(
+            page_size=page_size,
+            page_number=page_number,
+            monitoring_interval=constants.STANDARD_MONITORING_INTERVAL,
+        )
+        total_pages = get_url_response['total_pages']
+        url_object_ids = [url['object_id'] for url in get_url_response['urls']]
+        ping_urls(
+            url_object_ids=url_object_ids,
+            monitoring_timestamp=monitoring_timestamp,
+        )
+        page_number += 1
+        total_urls += len(url_object_ids)
+
+    # Indicate the number of URLs queued for pinging and the number workers req'd
+    return {
+        'total_urls': total_urls,
+        'total_workers': total_pages,
+    }
 
 
 def get_url_data_points(

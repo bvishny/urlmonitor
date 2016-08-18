@@ -1,13 +1,9 @@
-# Indicates the set of allowed monitoring intervals
-ALLOWED_MONITORING_INTERVALS = (
-    1,
-    5,
-    15,
-    30,
-    60,
-)
 # Indicates the standard monitoring interval in minutes
 STANDARD_MONITORING_INTERVAL = 1
+# Indicates the set of allowed monitoring intervals
+ALLOWED_MONITORING_INTERVALS = (
+    STANDARD_MONITORING_INTERVAL,
+)
 # Indicates the number of seconds after which to timeout a ping to a MonitoredURL
 STANDARD_TIMEOUT = 5
 # Indicates the maximum number of queue workers allowed

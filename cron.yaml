@@ -1,0 +1,4 @@
+cron:
+- description: "monitoring service run every minute"
+  url: /api/run_cron_monitoring_job
+  schedule: every 1 minutes
