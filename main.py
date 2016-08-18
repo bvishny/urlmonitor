@@ -25,9 +25,12 @@ ALLOWED_API_METHODS = [
     api_actions.merge_data_points,
 ]
 
-class MainHandler(webapp2.RequestHandler):
+class MainHandler(BaseHandler):
     def get(self):
-        self.response.write('Hello world!')
+        return self.render_template(
+            'home.html',
+            **{}
+        )
 
 
 handlers = [

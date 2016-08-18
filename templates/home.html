@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>URL Monitoring Service</title>
+
+    <!-- Bootstrap -->
+    <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <!-- APP CSS -->
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container-fluid">
+      <h1>URL Monitoring Service</h1>
+    </div>
+    <div class="container-fluid bg-primary">
+      <h3>Add URL:</h3>
+      <div class="" id="add-url-result"></div>
+      <form action="/api/add_url" method="post" name="add_url" id="add_url">
+        <div class="form-group">
+          <input type="text" class="form-control" size="40" value="http://" name="url" />
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-success">  Add URL
+          </button>
+        </div>
+      </form>
+      <h3>Existing URLs:</h3>
+      <div class="list-group">
+        <a href="#" class="list-group-item">Dapibus ac facilisis in</a>
+        <a href="#" class="list-group-item">Morbi leo risus</a>
+        <a href="#" class="list-group-item">Porta ac consectetur ac</a>
+        <a href="#" class="list-group-item">Vestibulum at eros</a>
+      </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="/assets/js/home.js"></script>
+    <script src="/assets/js/bootstrap.min.js"></script>
+  </body>
+</html>
